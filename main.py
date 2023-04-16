@@ -94,21 +94,13 @@ class Akinator:
         query = """SELECT DISTINCT ?country WHERE {\n?country wdt:P31 wd:Q6256 .\n"""
         query += self.get_constraints() + "\n}"
         SPARQL.setQuery(query)
-        print()
-        print(query)
-        print()
         try:
             ret = SPARQL.queryAndConvert()['results']['bindings']
         except Exception as e:
-            print("ERROR fetching candidates. Query: \n")
-            print(query)
-            print()
-            print()
+            print(f"ERROR fetching candidates. Query: \n\n {query}\n\n\n")
             raise e
         res = [row["country"]["value"] for row in ret]
-        if len(res) > self.countries_left:
-            print(res)
-            # water Q97, n, # pop greater than 32300000 n, water Q4918, n
+        assert len(res) <= self.countries_left
         self.countries_left = len(res)
         return res
 
