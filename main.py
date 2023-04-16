@@ -4,6 +4,7 @@ from pprint import pprint
 from random import choice
 import abc
 from math import log10
+from itertools import chain
 
 USER_AGENT: str = "JustTestingForNow/0.0 (testing@protonmail.ch)"
 LENGTH_ID_PREFIX: int = len("http://www.wikidata.org/entity/")
@@ -44,25 +45,6 @@ def query_countries():
         )
 
 
-# def query_properties(props: list[str]):
-#     sparql = SPARQLWrapper( "https://query.wikidata.org/sparql" )
-#     sparql.addCustomHttpHeader("User-Agent", USER_AGENT)
-#     sparql.setReturnFormat(JSON)
-#     query = """
-#     SELECT DISTINCT ?property (COUNT (?obj) AS ?occurrences)
-#     WHERE { 
-#         ?obj ?property ?value .
-#     }
-#     GROUP BY ?property
-#     """
-#     sparql.setQuery(query)
-#     ret = sparql.queryAndConvert()
-#     for val in ret["results"]["bindings"]:
-#         yield Country(
-#             val["entityLabel"]["value"],
-#             val["entity"]["value"][LENGTH_ID_PREFIX:]
-#         )
-
 def id_to_label(id: str) -> str:
     query = f"""
         SELECT  *
@@ -79,6 +61,7 @@ def id_to_label(id: str) -> str:
         print(f"Could not fetch label of wd:{id} from Wikidata.")
         return id
 
+
 class Akinator:
     def __init__(self):
         self.turns = 0
@@ -89,6 +72,7 @@ class Akinator:
         self.query_blocks = [
             BoundTrivial(),
             BoundPopulation(),
+            BoundNearWater(),
         ]
         self.query_tail = """}"""
         self.countries_left = float('inf')
@@ -110,25 +94,24 @@ class Akinator:
         query = """SELECT DISTINCT ?country WHERE { ?country wdt:P31 wd:Q6256 .\n"""
         query += self.get_constraints() + "\n}"
         SPARQL.setQuery(query)
-        ret = SPARQL.queryAndConvert()['results']['bindings']
+        try:
+            ret = SPARQL.queryAndConvert()['results']['bindings']
+        except Exception as e:
+            print("ERROR fetching candidates. Query: \n")
+            print(query)
+            print()
+            print()
+            raise e
         res = [row["country"]["value"] for row in ret]
-        assert len(res) <= self.countries_left
+        if len(res) > self.countries_left:
+            print(self.countries_left)
+            print(res)
+            # water Q97, n, # pop greater than 32300000 n, water Q4918, n
         self.countries_left = len(res)
         return res
 
         return 
 
-    # def pick_question(self, bound) -> str:
-    #     query = bound.query_head + "\n".join(map(lambda block: block.get(), self.query_blocks)) + self.query_tail
-    #     print()
-    #     print()
-    #     print(query)
-    #     print()
-    #     print()
-    #     SPARQL.setQuery(query)
-    #     ret = SPARQL.queryAndConvert()
-    #     pprint(ret)
-    #     pprint(ret["results"]["bindings"])
 
     def ask_question(self, question: str) -> bool:
         print(f"QUESTION {self.turns}! {self.countries_left} countries are left. \n\n{question}\n")
@@ -158,6 +141,7 @@ class Bound(abc.ABC):
     def next_question(self, constraints: str):
         pass
     
+
 class BoundTrivial(Bound):
     def __init__(self):
         self.wrong_guesses = []
@@ -234,43 +218,47 @@ class BoundPopulation(Bound):
         assert self.next_value is None
         self.next_value = val
         return self.format(val)
-    
-
-    # def turn(self, query_blocks: list):
-    #     SPARQL.resetQuery()
-    #     query = self.query_head + "\n".join(map(lambda block: block.get(), query_blocks)) + self.query_tail
-    #     SPARQL.setQuery(query)
-    #     ret = SPARQL.queryAndConvert()
-    #     pprint(ret)
-    #     ret["results"]["bindings"]
         
-# class BoundNearWater(Bound):
-#     near_water = "wdt:P206"
-#     def __init__(self):
-#         self.near = []
-#         self.not_near = []
 
-#     def get(self) -> str:
-#         return "\n".join(f"?country {self.near_water} {water} ." for water in self.near) \
-#             + "\n MINUS {\n" \
-#             + "\n".join(f"?country {self.near_water} {water} ." for water in self.not_near)
+class BoundNearWater(Bound):
+    near_water = "wdt:P206"
+    def __init__(self):
+        self.near = []
+        self.not_near = []
+        self.last_guess = None
+
+    def get(self) -> str:
+        return "\n".join(f"?country {self.near_water} wd:{water} ." for water in self.near) \
+            + "\n MINUS {\n" \
+            + "\n".join(f"?country {self.near_water} wd:{water} ." for water in self.not_near) \
+            + "}\n"
         
-#     def format(self, question: str) -> str:
-#         return f"Is your country located in or next to the following body of water? — {question}"
+    def format(self, question: str) -> str:
+        return f"Is your country located in or next to the following body of water? — {question}"
 
-#     def update(self, question: str, answer: bool):
-#         if answer:
-#             self.near.append(question)
-#         else:
-#             self.not_near.append(question)
+    def update(self, question: str, answer: bool):
+        assert self.last_guess is not None
+        if answer:
+            self.near.append(self.last_guess)
+        else:
+            self.not_near.append(self.last_guess)
+        self.last_guess = None
 
-#     def next_question(self, constraints: str) -> str:
-#         query = """SELECT DISTINCT ?water (COUNT(DISTINCT ?country AS ?number)) WHERE {
-#             ?country wdt:P31 wd:Q6256 .
-#             ?country wdt:P206 ?water .
-#         """
-#         query += constraints + "\nMINUS {" + "\n".join(f"?water = {water} ." for water in zip(self.not_near, self.near)) + "} } GROUP BY ?water ORDER BY DESC(?number) LIMIT 1"
-#         return query
+    def next_question(self, constraints: str) -> str:
+        query = """SELECT DISTINCT ?water (COUNT(DISTINCT ?country) AS ?number) WHERE {
+            ?country wdt:P31 wd:Q6256 .
+            ?country wdt:P206 ?water .
+        """
+        query += constraints + "\nMINUS {\n" \
+            + "\n".join(f"    ?water {self.near_water} wd:{water} ." for water in chain(self.near, self.not_near)) \
+            + "\n} } GROUP BY ?water ORDER BY DESC(?number) LIMIT 1\n"
+        # query += constraints + "\nMINUS {" + "\n".join(f"?water = {water} ." for water in zip(self.not_near, self.near)) + "} } GROUP BY ?water ORDER BY DESC(?number) LIMIT 1"
+        SPARQL.setQuery(query)
+        ret = SPARQL.queryAndConvert()
+        val = ret["results"]["bindings"][0]["water"]["value"][LENGTH_ID_PREFIX:]
+        self.last_guess = val
+        return self.format(val)
+
     
 def query_properties(props: list[str]):
     sparql = SPARQLWrapper( "https://query.wikidata.org/sparql" )
@@ -299,8 +287,8 @@ if __name__ == '__main__':
     while True:
         ak.turn()
 
-    # bw = BoundNearWater()
-    # print(bw.next_question(""))
-    # for x in query_countries():
-    #     print(x)
+    print(id_to_label("Q97"))
+
+    bw = BoundNearWater()
+    print(bw.next_question(""))
     
