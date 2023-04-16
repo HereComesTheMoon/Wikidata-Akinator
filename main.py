@@ -249,10 +249,18 @@ class BoundNearWater(Bound):
         """
         query += constraints + "\nMINUS {\n" \
             + "\n".join(f"    ?water {self.near_water} wd:{water} ." for water in chain(self.near, self.not_near)) \
-            + "\n} } GROUP BY ?water ORDER BY DESC(?number) LIMIT 1\n"
+            + "\n} } GROUP BY ?water ORDER BY DESC(?number)\n"
         SPARQL.setQuery(query)
         ret = SPARQL.queryAndConvert()
-        val = ret["results"]["bindings"][0]["water"]["value"][LENGTH_ID_PREFIX:]
+        val = None
+        res = [row["water"]["value"][LENGTH_ID_PREFIX:] for row in ret["results"]["bindings"]]
+        for candidate in res:
+            if candidate not in self.near and candidate not in self.not_near:
+                val = candidate
+                break
+        if val is None:
+            print("Oh no! I want to ask which body of water you are nearby, but there are no further candidates: I already know exactly which bodies of water you are close to. Handling this rare issue would make control flow vastly more complicated, so I will just abort.")
+            assert False
         self.last_guess = val
         return self.format(val)
 
