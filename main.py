@@ -9,7 +9,7 @@ from itertools import chain
 USER_AGENT: str = "JustTestingForNow/0.0 (testing@protonmail.ch)"
 LENGTH_ID_PREFIX: int = len("http://www.wikidata.org/entity/")
 
-SPARQL = SPARQLWrapper( "https://query.wikidata.org/sparql" )
+SPARQL = SPARQLWrapper("https://query.wikidata.org/sparql")
 SPARQL.addCustomHttpHeader("User-Agent", USER_AGENT)
 SPARQL.setReturnFormat(JSON)
 
@@ -20,7 +20,7 @@ class Country(NamedTuple):
 
 
 def query_countries():
-    sparql = SPARQLWrapper( "https://query.wikidata.org/sparql" )
+    sparql = SPARQLWrapper("https://query.wikidata.org/sparql")
     sparql.addCustomHttpHeader("User-Agent", USER_AGENT)
     sparql.setReturnFormat(JSON)
     query = """
@@ -81,7 +81,7 @@ class Akinator:
         self.turns += 1
         constraints = self.get_constraints()
         self.candidates()
-        
+
         bound = choice(self.query_blocks)
         question = bound.next_question(constraints)
         answer = self.ask_question(question)
@@ -110,18 +110,15 @@ class Akinator:
         self.countries_left = len(res)
         return res
 
-        return 
-
-
+    
     def ask_question(self, question: str) -> bool:
         print(f"QUESTION {self.turns}! {self.countries_left} countries are left. \n\n{question}\n")
         while True:
             choice = input("Y/N?").lower()
-            match choice:
-                case 'yes' | 'y':
-                    return True
-                case 'no' | 'n':
-                    return False
+            if choice == 'yes' or choice == 'y':
+                return True
+            elif choice == 'no' or choice == 'n':
+                return False
 
 
 class Bound(abc.ABC):
@@ -136,11 +133,11 @@ class Bound(abc.ABC):
     @abc.abstractmethod
     def update(self, question: str, answer: bool):
         pass
-    
+
     @abc.abstractmethod
     def next_question(self, constraints: str):
         pass
-    
+
 
 class BoundTrivial(Bound):
     def __init__(self):
@@ -160,7 +157,7 @@ class BoundTrivial(Bound):
         assert not answer
         self.wrong_guesses.append(self.last_guess)
         self.last_guess = None
-    
+
     def next_question(self, constraints: str) -> str:
         query = """SELECT DISTINCT ?country WHERE { ?country wdt:P31 wd:Q6256 .\n"""
         query += constraints + "\n}"
@@ -182,15 +179,14 @@ class BoundPopulation(Bound):
 
     def get(self) -> str:
         s = "?country wdt:P1082 ?pop .\n"
-        match (self.l, self.r):
-            case None, None:
-                return s
-            case _, None:
-                return s + f"FILTER({self.l} <= ?pop)"
-            case None, _:
-                return s + f"FILTER(?pop < {self.r})"
-            case _, _:
-                return s + f"FILTER({self.l} <= ?pop && ?pop <= {self.r})"
+        if not self.l and not self.r:
+            return s
+        elif not self.r:
+            return s + f"FILTER({self.l} <= ?pop)"
+        elif not self.l:
+            return s + f"FILTER(?pop < {self.r})"
+        else:
+            return s + f"FILTER({self.l} <= ?pop && ?pop <= {self.r})"
 
     def format(self, question: str) -> str:
         return f"Is the population of your country greater than {question:,}?"
@@ -252,7 +248,6 @@ class BoundNearWater(Bound):
         query += constraints + "\nMINUS {\n" \
             + "\n".join(f"    ?water {self.near_water} wd:{water} ." for water in chain(self.near, self.not_near)) \
             + "\n} } GROUP BY ?water ORDER BY DESC(?number) LIMIT 1\n"
-        # query += constraints + "\nMINUS {" + "\n".join(f"?water = {water} ." for water in zip(self.not_near, self.near)) + "} } GROUP BY ?water ORDER BY DESC(?number) LIMIT 1"
         SPARQL.setQuery(query)
         ret = SPARQL.queryAndConvert()
         val = ret["results"]["bindings"][0]["water"]["value"][LENGTH_ID_PREFIX:]
@@ -260,8 +255,8 @@ class BoundNearWater(Bound):
         return self.format(val)
 
     
-def query_properties(props: list[str]):
-    sparql = SPARQLWrapper( "https://query.wikidata.org/sparql" )
+def query_properties(props: list):
+    sparql = SPARQLWrapper("https://query.wikidata.org/sparql")
     sparql.addCustomHttpHeader("User-Agent", USER_AGENT)
     sparql.setReturnFormat(JSON)
     query = """
@@ -278,17 +273,9 @@ def query_properties(props: list[str]):
             val["entityLabel"]["value"],
             val["entity"]["value"][LENGTH_ID_PREFIX:]
         )
-    
-
 
 
 if __name__ == '__main__':
     ak = Akinator()
     while True:
         ak.turn()
-
-    print(id_to_label("Q97"))
-
-    bw = BoundNearWater()
-    print(bw.next_question(""))
-    
