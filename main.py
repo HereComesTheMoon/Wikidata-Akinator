@@ -91,9 +91,12 @@ class Akinator:
         return "\n".join(map(lambda block: block.get(), self.query_blocks))
 
     def candidates(self) -> list:
-        query = """SELECT DISTINCT ?country WHERE { ?country wdt:P31 wd:Q6256 .\n"""
+        query = """SELECT DISTINCT ?country WHERE {\n?country wdt:P31 wd:Q6256 .\n"""
         query += self.get_constraints() + "\n}"
         SPARQL.setQuery(query)
+        print()
+        print(query)
+        print()
         try:
             ret = SPARQL.queryAndConvert()['results']['bindings']
         except Exception as e:
@@ -104,7 +107,6 @@ class Akinator:
             raise e
         res = [row["country"]["value"] for row in ret]
         if len(res) > self.countries_left:
-            print(self.countries_left)
             print(res)
             # water Q97, n, # pop greater than 32300000 n, water Q4918, n
         self.countries_left = len(res)
@@ -159,7 +161,7 @@ class BoundTrivial(Bound):
         self.last_guess = None
 
     def next_question(self, constraints: str) -> str:
-        query = """SELECT DISTINCT ?country WHERE { ?country wdt:P31 wd:Q6256 .\n"""
+        query = """SELECT DISTINCT ?country WHERE {\n?country wdt:P31 wd:Q6256 .\n"""
         query += constraints + "\n}"
         SPARQL.setQuery(query)
         ret = SPARQL.queryAndConvert()['results']['bindings']
@@ -226,7 +228,7 @@ class BoundNearWater(Bound):
     def get(self) -> str:
         return "\n".join(f"?country {self.near_water} wd:{water} ." for water in self.near) \
             + "\n MINUS {\n" \
-            + "\n".join(f"?country {self.near_water} wd:{water} ." for water in self.not_near) \
+            + "MINUS {\n".join(f"?country {self.near_water} wd:{water} ." for water in self.not_near) \
             + "}\n"
         
     def format(self, question: str) -> str:
