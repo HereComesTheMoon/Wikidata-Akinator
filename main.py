@@ -144,7 +144,7 @@ class BoundTrivial(Bound):
         return "FILTER( ?country NOT IN ( wd:" + ",wd:".join(self.wrong_guesses) + ") )\n"
 
     def format(self, country: str) -> str:
-        return f"Is your country {country}?"
+        return f"Is your country {country} ({id_to_label(country)})?"
 
     def update(self, question: str, answer: bool):
         assert self.last_guess is not None
@@ -224,7 +224,7 @@ class BoundNearWater(Bound):
             + "\n"
         
     def format(self, question: str) -> str:
-        return f"Is your country located in or next to the following body of water? — {question}"
+        return f"Is your country located in or next to the following body of water? — {question} ({id_to_label(question)})"
 
     def update(self, question: str, answer: bool):
         assert self.last_guess is not None
