@@ -227,9 +227,9 @@ class BoundNearWater(Bound):
 
     def get(self) -> str:
         return "\n".join(f"?country {self.near_water} wd:{water} ." for water in self.near) \
-            + "\n MINUS {\n" \
-            + "MINUS {\n".join(f"?country {self.near_water} wd:{water} ." for water in self.not_near) \
-            + "}\n"
+            + "\n" \
+            + "\n".join(f"MINUS {{ ?country {self.near_water} wd:{water} . }}" for water in self.not_near) \
+            + "\n"
         
     def format(self, question: str) -> str:
         return f"Is your country located in or next to the following body of water? — {question}"
