@@ -63,16 +63,21 @@ def query_countries():
 #             val["entity"]["value"][LENGTH_ID_PREFIX:]
 #         )
 
-def id_to_name(id: str) -> str:
-    query = f"""SELECT DISTINCT ?idLabel WHERE {{
-        ?id ?p ?o
-        FILTER (?id = wd:{id}) .
-        SERVICE wikibase:label {{ bd:serviceParam wikibase:language "[en]". }}
-    }}
+def id_to_label(id: str) -> str:
+    query = f"""
+        SELECT  *
+        WHERE {{
+                wd:{id} rdfs:label ?label .
+                FILTER (langMatches( lang(?label), "EN" ) )
+              }} 
+        LIMIT 1
     """
-    SPARQL.queryAndConvert()
-    # TODO
-
+    SPARQL.setQuery(query)
+    try:
+        return SPARQL.queryAndConvert()['results']['bindings'][0]['label']['value']
+    except:
+        print(f"Could not fetch label of wd:{id} from Wikidata.")
+        return id
 
 class Akinator:
     def __init__(self):
