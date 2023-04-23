@@ -1,7 +1,7 @@
 from pprint import pprint
 from random import choice
 from bounds import BoundTrivial, BoundPopulation, BoundNearWater
-from utilities import SPARQL
+from utilities import SPARQL, id_to_label
 
 
 class Akinator:
@@ -22,12 +22,22 @@ class Akinator:
     def turn(self):
         self.turns += 1
         constraints = self.get_constraints()
-        self.candidates()
+        candidates = self.candidates()
+
+        if len(candidates) == 1:
+            print(f"Your country is {candidates[0]} ({id_to_label(candidates[0])})!")
+            print(f"The game took a total of {self.turns} turns!")
+            return False
+
+        if len(candidates) == 0:
+            print("There is no country fulfilling all of these criteria, at least according to Wikidata!")
+            return False
 
         bound = choice(self.query_blocks)
         question = bound.next_question(constraints)
         answer = self.ask_question(question)
         bound.update(question, answer)
+        return True
 
     def get_constraints(self) -> str:
         return "\n".join(map(lambda block: block.get(), self.query_blocks))
@@ -59,5 +69,7 @@ class Akinator:
 
 if __name__ == '__main__':
     ak = Akinator()
-    while True:
-        ak.turn()
+    result_round = True
+    while result_round:
+        result_round = ak.turn()
+    print("The game is over.")
