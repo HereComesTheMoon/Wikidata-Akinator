@@ -1,6 +1,6 @@
 from pprint import pprint
 from random import choice
-from bounds import BoundTrivial, BoundPopulation, BoundNearWater
+from bounds import Bound, BoundTrivial, BoundPopulation, BoundNearWater
 from utilities import SPARQL, id_to_label
 
 
@@ -12,7 +12,7 @@ class Akinator:
           ?country wdt:P31 wd:Q6256 .
         """
         self.query_blocks = [
-            BoundTrivial(),
+            BoundTrivial(), # First element has to be trivial bound
             BoundPopulation(),
             BoundNearWater(),
         ]
@@ -33,11 +33,18 @@ class Akinator:
             print("There is no country fulfilling all of these criteria, at least according to Wikidata!")
             return False
 
-        bound = choice(self.query_blocks)
+        bound = self.pick_bound()
         question = bound.next_question(constraints)
         answer = self.ask_question(question)
         bound.update(question, answer)
         return True
+
+    def pick_bound(self) -> Bound:
+        if self.countries_left <= 3:
+            return self.query_blocks[0] # This is the trivial bound, pick a random country and ask if it is correct
+        if self.countries_left <= 30:
+            return choice(self.query_blocks)
+        return choice(self.query_blocks[1:])
 
     def get_constraints(self) -> str:
         return "\n".join(map(lambda block: block.get(), self.query_blocks))
