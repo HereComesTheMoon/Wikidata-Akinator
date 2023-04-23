@@ -141,8 +141,8 @@ class BoundNearWater(Bound):
                 val = candidate
                 break
         if val is None:
-            print("Oh no! I want to ask which body of water you are nearby, but there are no further candidates: I already know exactly which bodies of water you are close to. Handling this rare issue would make control flow vastly more complicated, so I will just abort.")
-            assert False
+            print("Oh no! I want to ask which body of water you are nearby, but there are no further candidates: I already know exactly which bodies of water you are close to. Handling this rare issue would make control flow vastly more complicated, so I will just ask whether you are a random country instead.")
+            return None
         self.last_guess = val
         return self.format(val)
 

@@ -35,6 +35,8 @@ class Akinator:
 
         bound = self.pick_bound()
         question = bound.next_question(constraints)
+        if question is None:
+            question = self.query_blocks[0].next_question(constraints) # trivial bound fallback
         answer = self.ask_question(question)
         bound.update(question, answer)
         return True
