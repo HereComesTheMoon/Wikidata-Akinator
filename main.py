@@ -1,7 +1,7 @@
 from pprint import pprint
 from random import choice
 from bounds import Bound, BoundTrivial, BoundPopulation, BoundNearWater
-from utilities import SPARQL, id_to_label
+from utilities import SPARQL, id_to_label, LENGTH_ID_PREFIX
 
 
 class Akinator:
@@ -20,7 +20,6 @@ class Akinator:
         self.countries_left = float('inf')
 
     def turn(self):
-        self.turns += 1
         constraints = self.get_constraints()
         candidates = self.candidates()
 
@@ -33,6 +32,7 @@ class Akinator:
             print("There is no country fulfilling all of these criteria, at least according to Wikidata!")
             return False
 
+        self.turns += 1
         bound = self.pick_bound()
         question = bound.next_question(constraints)
         if question is None:
@@ -60,7 +60,7 @@ class Akinator:
         except Exception as e:
             print(f"ERROR fetching candidates. Query: \n\n {query}\n\n\n")
             raise e
-        res = [row["country"]["value"] for row in ret]
+        res = [row["country"]["value"][LENGTH_ID_PREFIX:] for row in ret]
         assert len(res) <= self.countries_left
         self.countries_left = len(res)
         return res

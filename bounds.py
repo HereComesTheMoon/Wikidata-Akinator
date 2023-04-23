@@ -26,9 +26,12 @@ class Bound(abc.ABC):
 class BoundTrivial(Bound):
     def __init__(self):
         self.wrong_guesses = []
+        self.correct_guess = None
         self.last_guess = None
 
     def get(self) -> str:
+        if self.correct_guess is not None:
+            return f"FILTER( ?country = wd:{self.correct_guess} ) \n"
         if not self.wrong_guesses:
             return ""
         return "FILTER( ?country NOT IN ( wd:" + ",wd:".join(self.wrong_guesses) + ") )\n"
@@ -38,8 +41,10 @@ class BoundTrivial(Bound):
 
     def update(self, question: str, answer: bool):
         assert self.last_guess is not None
-        assert not answer
-        self.wrong_guesses.append(self.last_guess)
+        if answer:
+            self.correct_guess = self.last_guess
+        else:
+            self.wrong_guesses.append(self.last_guess)
         self.last_guess = None
 
     def next_question(self, constraints: str) -> str:
