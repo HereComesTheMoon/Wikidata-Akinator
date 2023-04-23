@@ -1,4 +1,3 @@
-from pprint import pprint
 from random import choice
 from bounds import Bound, BoundTrivial, BoundPopulation, BoundNearWater
 from utilities import SPARQL, id_to_label, LENGTH_ID_PREFIX
@@ -7,16 +6,11 @@ from utilities import SPARQL, id_to_label, LENGTH_ID_PREFIX
 class Akinator:
     def __init__(self):
         self.turns = 0
-        self.query_head = """SELECT DISTINCT ?country ?pop
-        WHERE {
-          ?country wdt:P31 wd:Q6256 .
-        """
         self.query_blocks = [
             BoundTrivial(), # First element has to be trivial bound
             BoundPopulation(),
             BoundNearWater(),
         ]
-        self.query_tail = """}"""
         self.countries_left = float('inf')
 
     def turn(self):
