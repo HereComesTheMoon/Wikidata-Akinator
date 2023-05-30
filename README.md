@@ -8,7 +8,7 @@ At each step, the program queries Wikidata how many possible items exist, fulfil
 
 For this the program asks a question each turn, and keeps track of the answers of the player. The answers are aggregated into a Wikidata query, which restricts the scope of remaining objects.
 
-Ideally, the player could choose literally anything as their target item (assuming it has a Wikidata entry), and our program would automatically find a Y/N question which cuts the number of remaining candidates in half.
+Ideally, the player could choose literally anything as their target item (assuming it has a Wikidata entry), and our program would automatically find a Y/N question which cuts the number of remaining candidates in half. Due to problems with timeouts and question generation, the program currently restricts itself to guessing a country the player thought of.
 
 ## Problems / Verdict
 ### Query Timeouts
